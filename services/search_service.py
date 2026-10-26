@@ -26,8 +26,9 @@ def search_songs(query: str) -> list[dict]:
     """
     results = (
         db.session.execute(
+            # No join to song_tags here: it adds one row per tag and duplicates
+            # the song. to_dict() loads tags through the relationship anyway.
             select(Song)
-            .outerjoin(song_tags, Song.id == song_tags.c.song_id)
             .filter(
                 db.or_(
                     Song.title.ilike(f"%{query}%"),
