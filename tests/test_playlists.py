@@ -8,6 +8,7 @@ import pytest
 from app import create_app, db
 from models import User, Song, Playlist, playlist_entries
 from services.playlist_service import create_playlist, get_playlist_songs
+from services.notification_service import add_to_playlist
 
 
 @pytest.fixture
@@ -69,6 +70,21 @@ def test_playlist_returns_songs_in_order(app, seed_playlist):
         songs = get_playlist_songs(playlist_id)
         titles = [s["title"] for s in songs]
         assert titles == ["Track 1", "Track 2", "Track 3", "Track 4", "Track 5"]
+
+
+def test_added_song_shows_up_last(app, seed_playlist):
+    """Adding a song puts it at the end and it's returned with the rest."""
+    with app.app_context():
+        user_id = seed_playlist["user"].id
+        playlist_id = seed_playlist["playlist"].id
+        new_song = Song(title="Track 6", artist="Various", shared_by=user_id)
+        db.session.add(new_song)
+        db.session.commit()
+
+        add_to_playlist(playlist_id, new_song.id, user_id)
+
+        titles = [s["title"] for s in get_playlist_songs(playlist_id)]
+        assert titles == ["Track 1", "Track 2", "Track 3", "Track 4", "Track 5", "Track 6"]
 
 
 def test_empty_playlist_returns_empty_list(app):
